@@ -1,0 +1,10 @@
+.fill-vertical {
+  height: -webkit-calc(100%);
+  height: -moz-calc(100%);
+  height: calc(100%);
+  background-color: inherit;
+}
+
+.right {
+    float: right;
+}

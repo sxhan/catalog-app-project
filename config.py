@@ -8,3 +8,5 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # Secret key for signing cookies
 SECRET_KEY = "secret"
+
+DB_STRING = 'sqlite:///categoryapp.db'
