@@ -1,4 +1,19 @@
 {% extends "base.html" %} {% block content %}
+<div class="row padding-top padding-bottom">
+    <div class='flash'>
+        <div class="col-md-1"></div>
+        <div class="col-md-10">
+            {% with messages = get_flashed_messages() %} {% if messages %}
+            <p>
+                {% for message in messages %}
+                <strong> {{ message }} </strong>
+                {% endfor %}
+            </p>
+            {% endif %} {% endwith %}
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+</div>
 <div class="row banner menu">
     <div class="col-md-11 col-md-offset-1 padding-none">
         <h1>New Item</h1>
@@ -9,11 +24,11 @@
         <form method="post">
             <div class="form-group">
                 <label for="name">Name:</label>
-                <input type="text" class="form-control" maxlength="100" name="name">
+                <input type="text" class="form-control" maxlength="100" name="name" value="{{name}}">
                 <label for="name">Description:</label>
-                <input type="text" class="form-control" maxlength="100" name="description">
+                <input type="text" class="form-control" maxlength="100" name="description" value="{{description}}">
                 <label for="name">Category:</label>
-                <select class="form-control" name="category">
+                <select class="form-control" name="category" value="category">
                     {% for category in categories %}
                         <option>{{category.name}}</option>
                     {% endfor %}

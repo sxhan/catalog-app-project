@@ -183,26 +183,46 @@ def NewItem():
         # "filled"
         if not all([field in request.form and request.form[field]
                     for field in ("name", "description", "category")]):
+            flash("Error: All fields are required!")
             return render_template(
                 "newItem.html",
                 categories=categories,
                 name=request.form.get("name", ""),
                 description=request.form.get("description", ""),
-                category=request.form.get("category", ""),
-                error="All fields are required!")
-        else:
-            category = db_session.query(models.Category) \
-                                 .filter_by(name=request.form["category"]) \
-                                 .one()
-            item = models.Item(name=request.form["name"],
-                               description=request.form["description"],
-                               category_id=category.id,
-                               user_id=1)
-            # FIXME change user once user is implemented
-            db_session.add(item)
-            db_session.commit()
-            return redirect(url_for("ShowCategory",
-                            category_name=category.name))
+                category=request.form.get("category", ""))
+
+        # Attempt to create new item
+        category = db_session.query(models.Category) \
+                             .filter_by(name=request.form["category"]) \
+                             .one()
+        existing = db_session.query(models.Item) \
+                             .filter_by(name=request.form["name"],
+                                        category_id=category.id).all()
+        print existing
+
+        # If user is entering duplicate item, stop this transaction
+        if existing:
+            flash("Error: Item with duplicate name/category combination "
+                  "found.")
+            return render_template(
+                "newItem.html",
+                categories=categories,
+                name=request.form.get("name", ""),
+                description=request.form.get("description", ""),
+                category=request.form.get("category", ""))
+
+        # Continue with item creation
+        item = models.Item(name=request.form["name"],
+                           description=request.form["description"],
+                           category_id=category.id,
+                           user_id=1)
+        # FIXME change user once user is implemented
+        db_session.add(item)
+        db_session.commit()
+        return redirect(url_for("ShowCategory",
+                        category_name=category.name))
+
+
     else:
         return render_template("newItem.html",
                                categories=categories)
