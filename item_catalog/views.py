@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import logging
+
 from flask import Flask, render_template, request, redirect, jsonify, url_for, flash, session, abort
 
-from sqlalchemy import create_engine, asc
+from sqlalchemy import create_engine, asc, desc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -24,11 +26,15 @@ db_session = DBSession()
 #############
 
 @app.route('/')
+@app.route('/catalog/')
 def index():
     categories = db_session.query(models.Category) \
                            .order_by(asc(models.Category.name))
+    items = db_session.query(models.Item) \
+                      .order_by(desc(models.Item.updated_date))
     return render_template('index.html',
-                           categories=categories)
+                           categories=categories,
+                           items=items)
 
 
 ##################
@@ -51,55 +57,118 @@ def NewCategory():
         return render_template('newCategory.html')
 
 
-@app.route('/catalog/<int:category_id>/edit/', methods=['GET', 'POST'])
-def EditCategory(category_id):
-    # if 'username' not in login_session:
-    #     return redirect('/login')
+@app.route('/catalog/<string:category_name>/')
+@app.route('/catalog/<string:category_name>/items/')
+def ShowCategory(category_name):
+    # Get category
     try:
         category = db_session.query(models.Category) \
-                             .filter_by(id=category_id).one()
+                             .filter_by(name=category_name).one()
+        items = db_session.query(models.Item).join(models.Category) \
+                          .filter(models.Category.name == category_name).all()
     except NoResultFound:
         return abort(404)
     except Exception:
+        logging.error("", exc_info=True)
+        return abort(500)
+
+    return render_template('showCategory.html',
+                           items=items,
+                           category=category)
+
+
+@app.route('/catalog/<string:category_name>/<string:item_name>/')
+def ShowItem(category_name, item_name):
+    try:
+        category, item = (
+            db_session.query(models.Category, models.Item)
+                      .filter(models.Category.id == models.Item.category_id)
+                      .filter(models.Category.name == category_name)
+                      .filter(models.Item.name == item_name).one())
+    except NoResultFound:
+        print "no result found!"
+        return abort(404)
+    except Exception:
+        logging.error("something went wrong", exc_info=True)
+        return abort(500)
+    return str(str(category.serialize) + str(item.serialize))
+
+
+@app.route('/catalog/<string:category_name>/<string:item_name>/edit/',
+           methods=['GET', 'POST'])
+def EditItem(category_name, item_name):
+    try:
+        category, item = (
+            db_session.query(models.Category, models.Item)
+                      .filter(models.Category.id == models.Item.category_id)
+                      .filter(models.Category.name == category_name)
+                      .filter(models.Item.name == item_name).one())
+    except NoResultFound:
+        print "no result found!"
+        return abort(404)
+    except Exception:
+        logging.error("something went wrong", exc_info=True)
         return abort(500)
 
     if request.method == 'POST':
-        if request.form['name']:
-            category.name = request.form['name']
-            flash('Restaurant Successfully Edited %s' % category.name)
+        if 'name' in request.form and 'description' in request.form:
+            item.name = request.form['name']
+            item.description = request.form['description']
+            flash('Successfully Edited %s' % item.name)
             return redirect(url_for('index'))
+
     else:
-        return render_template('editCategory.html', category=category)
+        return render_template('editItem.html',
+                               category=category,
+                               item=item)
 
 
-# Delete a restaurant
-@app.route('/catalog/<int:category_id>/delete/', methods=['GET', 'POST'])
-def DeleteCategory(restaurant_id):
+@app.route('/catalog/<string:category_name>/<string:item_name>/delete/',
+           methods=["GET", "POST"])
+def DeleteItem(category_name, item_name):
+    try:
+        category, item = (
+            db_session.query(models.Category, models.Item)
+                      .filter(models.Category.id == models.Item.category_id)
+                      .filter(models.Category.name == category_name)
+                      .filter(models.Item.name == item_name).one())
+
+        # Only owner can perform this action
+        if item.user.id != session.user_id:
+            return abort(403)
+    except NoResultFound:
+        return abort(404)
+    except Exception:
+        logging.error("something went wrong", exc_info=True)
+        return abort(500)
+
+    if request.method == 'POST':
+        if 'confirm' in request.form and request.form["confirm"] is True:
+            item_name = item.name  # Save the name for use later
+            db_session.delete(item)
+            db_session.commit()
+            flash('Successfully Edited %s' % item_name)
+            return redirect(url_for('index'))
+
+    else:
+        return render_template('deleteItem.html',
+                               category=category,
+                               item=item)
+
+
+# Delete a category. Not used
+# @app.route('/catalog/<int:category_id>/delete/', methods=['GET', 'POST'])
+def DeleteCategory(category_id):
     # if 'username' not in login_session:
     #     return redirect('/login')
     try:
         category = db_session.query(models.Category) \
                              .filter_by(id=category_id).one()
-    except NoResultFound:
-        return abort(404)
     except Exception:
-        return abort(500)
-    if restaurantToDelete.user_id != login_session['user_id']:
-        return """
-               <script>
-                   function myFunction() {
-                       alert('you are not allowed to do this!');
-                   }
-               </script>
-               <bodyonload='myFunction()'></body>
-               """
-    if request.method == 'POST':
-        session.delete(restaurantToDelete)
-        flash('%s Successfully Deleted' % restaurantToDelete.name)
-        session.commit()
-        return redirect(url_for('showRestaurants', restaurant_id=restaurant_id))
-    else:
-        return render_template('deleteRestaurant.html', restaurant=restaurantToDelete)
+        raise
+
+    db_session.delete(category)
+    db_session.commit()
 
 @app.route('/login')
 def login():
