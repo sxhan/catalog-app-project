@@ -23,3 +23,7 @@
 .full {
     height: 80vh;
 }
+
+.no-selector {
+    cursor:default;
+}
