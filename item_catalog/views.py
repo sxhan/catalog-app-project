@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from functools import wraps
 
 from flask import Flask, render_template, request, redirect, jsonify, url_for, flash, session, abort
 
@@ -18,6 +19,19 @@ models.Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 db_session = DBSession()
 
+
+def catch_exceptions(f):
+    """Useful decorator for debugging
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception:
+            logging.error("Unhandled Error on %s" % f.__name__,
+                          exc_info=True)
+            return abort(500)
+    return wrapper
 
 #############
 #
@@ -156,6 +170,44 @@ def DeleteItem(category_name, item_name):
                                item=item)
 
 
+@app.route('/catalog/item/new/',
+           methods=['GET', 'POST'])
+@catch_exceptions
+def NewItem():
+    # This will be useful later
+    categories = db_session.query(models.Category) \
+                           .order_by(asc(models.Category.name))
+    if request.method == 'POST':
+        # Check 1: Ensure that all fields are passed back and has value
+        # "If not all required fields are passed back or not all fields are "
+        # "filled"
+        if not all([field in request.form and request.form[field]
+                    for field in ("name", "description", "category")]):
+            return render_template(
+                "newItem.html",
+                categories=categories,
+                name=request.form.get("name", ""),
+                description=request.form.get("description", ""),
+                category=request.form.get("category", ""),
+                error="All fields are required!")
+        else:
+            category = db_session.query(models.Category) \
+                                 .filter_by(name=request.form["category"]) \
+                                 .one()
+            item = models.Item(name=request.form["name"],
+                               description=request.form["description"],
+                               category_id=category.id,
+                               user_id=1)
+            # FIXME change user once user is implemented
+            db_session.add(item)
+            db_session.commit()
+            return redirect(url_for("ShowCategory",
+                            category_name=category.name))
+    else:
+        return render_template("newItem.html",
+                               categories=categories)
+
+
 # Delete a category. Not used
 # @app.route('/catalog/<int:category_id>/delete/', methods=['GET', 'POST'])
 def DeleteCategory(category_id):
@@ -169,6 +221,7 @@ def DeleteCategory(category_id):
 
     db_session.delete(category)
     db_session.commit()
+
 
 @app.route('/login')
 def login():

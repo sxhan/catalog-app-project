@@ -19,3 +19,7 @@
     font-weight: bold;
     margin-left: 1em;
 }
+
+.full {
+    height: 80vh;
+}

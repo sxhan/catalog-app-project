@@ -1,8 +1,8 @@
 {% extends "base.html" %} {% block content %}
 <div class="row padding-top padding-bottom">
     <div class='flash'>
-        <div class="col-md-1"></div>
-        <div class="col-md-10">
+        <div class="col-xs-1"></div>
+        <div class="col-xs-10">
             {% with messages = get_flashed_messages() %} {% if messages %}
             <p>
                 {% for message in messages %}
@@ -11,7 +11,7 @@
             </p>
             {% endif %} {% endwith %}
         </div>
-        <div class="col-md-1"></div>
+        <div class="col-xs-1"></div>
     </div>
 </div>
 <div class="row">
@@ -34,7 +34,7 @@
     </div>
     <div class="col-xs-6">
         <div class="row">
-            <h2>Latest Items</h2>
+            <h2><a href="{{url_for('NewItem')}}" class="btn btn-default right" role="button">Add Item</a>New Items</h2>
         </div>
         {% for item in items %}
             <div class="row">
@@ -48,7 +48,8 @@
         {% endfor %}
 
     </div>
-    <div class="col-xs-1"></div>
+    <div class="col-xs-1">
+    </div>
 </div>
 
 {% endblock %}
