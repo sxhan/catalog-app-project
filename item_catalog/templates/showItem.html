@@ -1,0 +1,27 @@
+{% extends "base.html" %} {% block content %}
+<div class="row">
+    <ol class="breadcrumb">
+        <li>
+            <i class="fa fa-home"></i>  <a href="{{url_for('index')}}">Home</a>
+        </li>
+        <li>
+            <i class="glyphicon glyphicon-tag"></i> {{category.name}}
+        </li>
+        <li class="active">
+            <i class="glyphicon glyphicon-tag"></i> {{item.name}}
+        </li>
+    </ol>
+</div>
+<div class="row banner menu">
+    <div class="col-md-11 col-md-offset-1 padding-none">
+        <h1>{{item.name}}</h1>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-11 col-md-offset-1 padding-top">
+        <p>
+            {{item.description}}
+        </p>
+    </div>
+</div>
+{% endblock %}

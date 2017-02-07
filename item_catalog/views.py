@@ -33,6 +33,12 @@ def catch_exceptions(f):
             return abort(500)
     return wrapper
 
+
+def get_ordered_categories():
+    categories = db_session.query(models.Category) \
+                           .order_by(asc(models.Category.name))
+    return categories
+
 #############
 #
 # Main Route
@@ -88,7 +94,8 @@ def ShowCategory(category_name):
 
     return render_template('showCategory.html',
                            items=items,
-                           category=category)
+                           category=category,
+                           categories=get_ordered_categories())
 
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/')
@@ -100,17 +107,20 @@ def ShowItem(category_name, item_name):
                       .filter(models.Category.name == category_name)
                       .filter(models.Item.name == item_name).one())
     except NoResultFound:
-        print "no result found!"
         return abort(404)
     except Exception:
         logging.error("something went wrong", exc_info=True)
         return abort(500)
-    return str(str(category.serialize) + str(item.serialize))
+    return render_template("showItem.html",
+                           category=category,
+                           item=item)
 
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/edit/',
            methods=['GET', 'POST'])
 def EditItem(category_name, item_name):
+
+    # Get Item
     try:
         category, item = (
             db_session.query(models.Category, models.Item)
@@ -118,23 +128,53 @@ def EditItem(category_name, item_name):
                       .filter(models.Category.name == category_name)
                       .filter(models.Item.name == item_name).one())
     except NoResultFound:
-        print "no result found!"
         return abort(404)
     except Exception:
         logging.error("something went wrong", exc_info=True)
         return abort(500)
 
     if request.method == 'POST':
-        if 'name' in request.form and 'description' in request.form:
-            item.name = request.form['name']
-            item.description = request.form['description']
-            flash('Successfully Edited %s' % item.name)
-            return redirect(url_for('index'))
+        # Check 1: Ensure that all fields are passed back and has value
+        # "If not all required fields are passed back or not all fields are "
+        # "filled"
+        if not all([field in request.form and request.form[field]
+                    for field in ("name", "description")]):
+            flash("Error: All fields are required!")
+            return render_template(
+                "editItem.html",
+                name=request.form.get("name", ""),
+                description=request.form.get("description", ""),
+                category=category)
+
+        # Check 2: for duplicate item
+        existing = db_session.query(models.Item) \
+                             .filter_by(name=request.form["name"],
+                                        category_id=category.id).all()
+
+        # If user is entering duplicate item, stop this transaction
+        if existing:
+            flash("Error: Item with duplicate name/category combination "
+                  "found.")
+            return render_template(
+                "editItem.html",
+                name=request.form.get("name", ""),
+                description=request.form.get("description", ""))
+
+        # Edit item
+        item.name = request.form["name"]
+        item.description = request.form["description"]
+
+        db_session.add(item)
+        db_session.commit()
+        flash("Edit Successful!")
+        return redirect(url_for("ShowCategory",
+                                category_name=category.name))
 
     else:
-        return render_template('editItem.html',
-                               category=category,
-                               item=item)
+        return render_template("editItem.html",
+                               name=item.name,
+                               description=item.description,
+                               category=category)
 
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/delete/',
@@ -148,7 +188,8 @@ def DeleteItem(category_name, item_name):
                       .filter(models.Item.name == item_name).one())
 
         # Only owner can perform this action
-        if item.user.id != session.user_id:
+        # FIXME change hard coded item value
+        if item.user.id != 1:
             return abort(403)
     except NoResultFound:
         return abort(404)
@@ -157,17 +198,17 @@ def DeleteItem(category_name, item_name):
         return abort(500)
 
     if request.method == 'POST':
-        if 'confirm' in request.form and request.form["confirm"] is True:
+        if 'confirm' in request.form and request.form["confirm"] == "true":
             item_name = item.name  # Save the name for use later
             db_session.delete(item)
             db_session.commit()
-            flash('Successfully Edited %s' % item_name)
-            return redirect(url_for('index'))
-
+            flash('Deleted %s' % item_name)
+            return redirect(url_for('ShowCategory',
+                                    category_name=category_name))
     else:
         return render_template('deleteItem.html',
                                category=category,
-                               item=item)
+                               name=item.name)
 
 
 @app.route('/catalog/item/new/',
@@ -175,8 +216,8 @@ def DeleteItem(category_name, item_name):
 @catch_exceptions
 def NewItem():
     # This will be useful later
-    categories = db_session.query(models.Category) \
-                           .order_by(asc(models.Category.name))
+    categories = get_ordered_categories()
+
     if request.method == 'POST':
         # Check 1: Ensure that all fields are passed back and has value
         # "If not all required fields are passed back or not all fields are "
@@ -198,7 +239,6 @@ def NewItem():
         existing = db_session.query(models.Item) \
                              .filter_by(name=request.form["name"],
                                         category_id=category.id).all()
-        print existing
 
         # If user is entering duplicate item, stop this transaction
         if existing:
@@ -221,7 +261,6 @@ def NewItem():
         db_session.commit()
         return redirect(url_for("ShowCategory",
                         category_name=category.name))
-
 
     else:
         return render_template("newItem.html",

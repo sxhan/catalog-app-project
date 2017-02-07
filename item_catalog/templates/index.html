@@ -1,19 +1,4 @@
 {% extends "base.html" %} {% block content %}
-<div class="row padding-top padding-bottom">
-    <div class='flash'>
-        <div class="col-xs-1"></div>
-        <div class="col-xs-10">
-            {% with messages = get_flashed_messages() %} {% if messages %}
-            <p>
-                {% for message in messages %}
-                <strong> {{ message }} </strong>
-                {% endfor %}
-            </p>
-            {% endif %} {% endwith %}
-        </div>
-        <div class="col-xs-1"></div>
-    </div>
-</div>
 <div class="row">
     <div class="col-xs-1"></div>
     <div class="col-xs-3">
@@ -29,8 +14,10 @@
         {% endfor %}
     </div>
     <div class="col-xs-1">
-        <div style="height: 150px; width: 2px; background-color:black;">
-        </div>
+        asdfsdf
+        <hr style="height: 1200px; width: 20px background-color:black"/>
+        <hr>
+        <!-- <div style="height: 100px; width: 2px; background-color:black;"></div> -->
     </div>
     <div class="col-xs-6">
         <div class="row">
