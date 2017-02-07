@@ -14,14 +14,41 @@
         <div class="col-md-1"></div>
     </div>
 </div>
-{% for category in categories %}
-<a href="{{url_for('EditCategory', category_id=category.id)}}">
-    <div class="row">
-        <div class="col-md-1"></div>
-        <div class="col-md-10">
-            <h3>{{category.name}}</h3>
+<div class="row">
+    <div class="col-xs-1"></div>
+    <div class="col-xs-3">
+        <div class="row">
+            <h2>Categories</h2>
         </div>
-        <div class="col-md-1"></div>
+        {% for category in categories %}
+        <div class="row">
+            <a href="{{url_for('ShowCategory', category_name=category.name)}}">
+                <span class="list">{{category.name}}</span>
+            </a>
+        </div>
+        {% endfor %}
     </div>
-</a>
-{% endfor %} {% endblock %}
+    <div class="col-xs-1">
+        <div style="height: 150px; width: 2px; background-color:black;">
+        </div>
+    </div>
+    <div class="col-xs-6">
+        <div class="row">
+            <h2>Latest Items</h2>
+        </div>
+        {% for item in items %}
+            <div class="row">
+                <a href="{{url_for('ShowItem', category_name=item.category.name, item_name=item.name)}}">
+                    <span class="list">{{item.name}}</span>
+                </a>
+                <a href="{{url_for('ShowCategory', category_name=item.category.name)}}">
+                    <span class="list-category">({{item.category.name}})</span>
+                </a>
+            </div>
+        {% endfor %}
+
+    </div>
+    <div class="col-xs-1"></div>
+</div>
+
+{% endblock %}

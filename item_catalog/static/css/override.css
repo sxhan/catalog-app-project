@@ -8,3 +8,14 @@
 .right {
     float: right;
 }
+
+.list {
+    color: dimgrey;
+}
+
+.list-category {
+    color: darkgrey;
+    font-style: italic;
+    font-weight: bold;
+    margin-left: 1em;
+}
