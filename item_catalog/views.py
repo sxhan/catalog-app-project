@@ -39,6 +39,7 @@ def get_ordered_categories():
                            .order_by(asc(models.Category.name))
     return categories
 
+
 #############
 #
 # Main Route
