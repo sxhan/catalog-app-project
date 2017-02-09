@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
 import logging
-import time
+import json
+import random
+import string
+import httplib2
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash, session, abort
+from flask import (render_template, request, redirect, url_for,
+                   flash, session, abort, make_response)
 from flask_login import login_user, login_required, logout_user
 
 from sqlalchemy import create_engine, asc, desc
@@ -70,12 +74,11 @@ def index():
 @app.route('/catalog/new/', methods=['GET', 'POST'])
 @login_required
 def NewCategory():
-    # if 'username' not in login_session:
+    # if 'username' not in session:
     #     return redirect('/login')
     if request.method == 'POST':
         new = models.Category(name=request.form['name'])
         db_session.add(new)
-        # flash('New Restaurant %s Successfully Created' % newRestaurant.name)
         db_session.commit()
         return redirect(url_for('index'))
     else:
@@ -277,7 +280,7 @@ def NewItem():
 # Delete a category. Not used
 # @app.route('/catalog/<int:category_id>/delete/', methods=['GET', 'POST'])
 def DeleteCategory(category_id):
-    # if 'username' not in login_session:
+    # if 'username' not in session:
     #     return redirect('/login')
     try:
         category = db_session.query(models.Category) \
@@ -295,6 +298,11 @@ def Login():
     """Main login view that supports basic form based login and OAuth login.
     OAuth logins are initiated here but a different callback view is used.
     """
+    # Anti x-site forgery attack
+    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                    for x in xrange(32))
+    session['state'] = state
+
     if request.method == "POST":
         # Login and validate the user.
         # user should be an instance of your `User` class
@@ -308,6 +316,7 @@ def Login():
         flash('Logged in successfully.')
 
         next_url = request.args.get('next')
+
         # is_safe_url should check if the url is safe for redirects.
         # See http://flask.pocoo.org/snippets/62/ for an example.
         if not auth.is_safe_url(next_url):
@@ -315,7 +324,8 @@ def Login():
 
         return redirect(next_url or url_for("index"))
     else:
-        return render_template("login.html")
+        return render_template("login.html",
+                               STATE=state)
 
 
 @app.route("/logout/")
@@ -323,7 +333,172 @@ def Login():
 def Logout():
     logout_user()
     flash("Successfully logged out!")
-    return redirect(url_for("index"))
+    return redirect(request.args.get('next') or url_for("index"))
+
+
+@app.route('/gconnect', methods=['POST'])
+def gconnect():
+    # Validate state token
+    if request.args.get('state') != session['state']:
+        response = make_response(json.dumps('Invalid state parameter.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    # Obtain authorization code
+    code = request.data
+
+    try:
+        # Upgrade the authorization code into a credentials object
+        oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
+        oauth_flow.redirect_uri = 'postmessage'
+        credentials = oauth_flow.step2_exchange(code)
+    except FlowExchangeError:
+        response = make_response(
+            json.dumps('Failed to upgrade the authorization code.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Check that the access token is valid.
+    access_token = credentials.access_token
+    url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
+           % access_token)
+    h = httplib2.Http()
+    result = json.loads(h.request(url, 'GET')[1])
+    # If there was an error in the access token info, abort.
+    if result.get('error') is not None:
+        response = make_response(json.dumps(result.get('error')), 500)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Verify that the access token is used for the intended user.
+    gplus_id = credentials.id_token['sub']
+    if result['user_id'] != gplus_id:
+        response = make_response(
+            json.dumps("Token's user ID doesn't match given user ID."), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Verify that the access token is valid for this app.
+    if result['issued_to'] != CLIENT_ID:
+        response = make_response(
+            json.dumps("Token's client ID does not match app's."), 401)
+        print "Token's client ID does not match app's."
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    stored_credentials = session.get('credentials')
+    stored_gplus_id = session.get('gplus_id')
+    if stored_credentials is not None and gplus_id == stored_gplus_id:
+        response = make_response(json.dumps('Current user is already connected.'),
+                                 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Store the access token in the session for later use.
+    session['provider'] = 'google'  # enable this in order to use the /disconnect route
+    session['credentials'] = credentials
+    session['gplus_id'] = gplus_id
+
+    print session
+
+    # Get user info
+    userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+    params = {'access_token': credentials.access_token, 'alt': 'json'}
+    answer = requests.get(userinfo_url, params=params)
+
+    data = answer.json()
+
+    session['username'] = data['name']
+    session['picture'] = data['picture']
+    session['email'] = data['email']
+
+    # See if a user exists, if it doesn't make a new one
+    user_id = getUserID(data['email'])
+    if not user_id:
+        user_id = createUser(session)
+    session['user_id'] = user_id
+
+    output = ''
+    output += '<h1>Welcome, '
+    output += session['username']
+    output += '!</h1>'
+    output += '<img src="'
+    output += session['picture']
+    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    flash("you are now logged in as %s" % session['username'])
+    print "done!"
+    return output
+
+
+@app.route('/fbconnect', methods=['POST'])
+def fbconnect():
+    # Protect against cross site reference forgery attacks
+    if request.args.get('state') != session['state']:
+        response = make_response(json.dumps('Invalid state parameter.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    # Exchange client token for a long-lived server-side token
+    access_token = request.data
+    print "access token received %s " % access_token
+
+    print app.config
+    app_id = app.config['FB_CLIENT_SECRETS']['web']['app_id']
+    app_secret = app.config['FB_CLIENT_SECRETS']['web']['app_secret']
+    # Send app_secret, app_id along with access token to verify both user and our server.
+    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
+        app_id, app_secret, access_token)
+    h = httplib2.Http()
+    # Get token. Note that it contains a 'expires' param
+    result = h.request(url, 'GET')[1]
+
+    # Use token to get user info from API
+    # userinfo_url = "https://graph.facebook.com/v2.4/me"
+    # strip expire tag from access token
+    token = result.split("&")[0]
+
+    # get user info
+    url = 'https://graph.facebook.com/v2.4/me?%s&fields=name,id,email' % token
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[1]
+    # print "url sent for API access:%s"% url
+    # print "API JSON result: %s" % result
+    data = json.loads(result)
+    session['provider'] = 'facebook'
+    session['username'] = data["name"]
+    session['email'] = data["email"]
+    session['facebook_id'] = data["id"]
+
+    # The token must be stored in the session in order to properly logout, let's strip out the information before the equals sign in our token
+    stored_token = token.split("=")[1]
+    session['access_token'] = stored_token
+
+    # Get user picture
+    url = 'https://graph.facebook.com/v2.4/me/picture?%s&redirect=0&height=200&width=200' % token
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[1]
+    data = json.loads(result)
+
+    session['picture'] = data["data"]["url"]
+
+    # now apply same login logic as google api
+    # see if user exists
+    user = auth.query_oauth_user(session['email'])
+    if not user:
+        user = auth.create_user(email=session["email"],
+                                isoauth=True)
+    user_id = user.id
+    session['user_id'] = user_id
+
+    output = ''
+    output += '<h1>Welcome, '
+    output += session['username']
+
+    output += '!</h1>'
+    output += '<img src="'
+    output += session['picture']
+    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+
+    flash("Now logged in as %s" % session['username'])
+    return output
 
 
 # Sample HTTP error handling

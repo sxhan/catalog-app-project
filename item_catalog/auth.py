@@ -42,6 +42,18 @@ def create_user(username="", password="", email="", isoauth=False):
     return user
 
 
+def query_oauth_user(email):
+    try:
+        user = db_session.query(models.User).filter_by(email=email, isoauth=True).one()
+        return user
+    except NoResultFound:
+        pass
+    except Exception:
+        logging.error("Something went wrong querying oauth user!",
+                      exc_info=True)
+    return None
+
+
 def form_login(username, password):
     """Authentication function for form based login. Returns the user object
     when the credentials are correct, or None otherwise.
