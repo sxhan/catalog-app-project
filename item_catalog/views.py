@@ -4,12 +4,13 @@ import logging
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, jsonify, url_for, flash, session, abort
+from flask_login import login_user, login_required, logout_user
 
 from sqlalchemy import create_engine, asc, desc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
-from . import app, models
+from . import app, models, auth
 
 
 # Connect to Database and create database session
@@ -49,6 +50,7 @@ def get_ordered_categories():
 @app.route('/')
 @app.route('/catalog/')
 def index():
+    print session
     categories = db_session.query(models.Category) \
                            .order_by(asc(models.Category.name))
     items = db_session.query(models.Item) \
@@ -65,6 +67,7 @@ def index():
 ##################
 
 @app.route('/catalog/new/', methods=['GET', 'POST'])
+@login_required
 def NewCategory():
     # if 'username' not in login_session:
     #     return redirect('/login')
@@ -119,6 +122,7 @@ def ShowItem(category_name, item_name):
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/edit/',
            methods=['GET', 'POST'])
+@login_required
 def EditItem(category_name, item_name):
 
     # Get Item
@@ -180,6 +184,7 @@ def EditItem(category_name, item_name):
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/delete/',
            methods=["GET", "POST"])
+@login_required
 def DeleteItem(category_name, item_name):
     try:
         category, item = (
@@ -212,9 +217,9 @@ def DeleteItem(category_name, item_name):
                                name=item.name)
 
 
-@app.route('/catalog/item/new/',
-           methods=['GET', 'POST'])
+@app.route('/catalog/item/new/', methods=['GET', 'POST'])
 @catch_exceptions
+@login_required
 def NewItem():
     # This will be useful later
     categories = get_ordered_categories()
@@ -283,9 +288,40 @@ def DeleteCategory(category_id):
     db_session.commit()
 
 
-@app.route('/login')
-def login():
-    return 'login page!'
+@app.route('/login/', methods=['GET', 'POST'])
+@catch_exceptions
+def Login():
+    """Main login view that supports basic form based login and OAuth login.
+    OAuth logins are initiated here but a different callback view is used.
+    """
+    if request.method == "POST":
+        # Login and validate the user.
+        # user should be an instance of your `User` class
+        try:
+            user = db_session.query(models.User).filter_by(id=1).one()
+        except NoResultFound:
+            abort(404)
+
+        login_user(user)
+
+        flash('Logged in successfully.')
+
+        next_url = request.args.get('next')
+        # is_safe_url should check if the url is safe for redirects.
+        # See http://flask.pocoo.org/snippets/62/ for an example.
+        if not auth.is_safe_url(next_url):
+            return abort(400)
+
+        return redirect(next_url or url_for("index"))
+    else:
+        return render_template("login.html")
+
+
+@app.route("/logout/")
+@login_required
+def Logout():
+    logout_user()
+    return redirect(url_for("index"))
 
 
 # Sample HTTP error handling

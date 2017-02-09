@@ -135,14 +135,11 @@
                     </ul>
                 </li> -->
                 <li class="dropdown">
-                    {%if 'username' not in session %}
-                        <!-- <a class="dropdown-toggle" href="url_for('showLogin')">Click Here to Login </a> -->
-                        <a class="toggle" href="#">Click Here to Login </a>
-                    {% else %}
+                    {% if current_user.is_authenticated %}
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <i class="fa fa-user"></i> John Smith <b class="caret"></b></a>
+                        <i class="fa fa-user"></i> {{current_user.username}} <b class="caret"></b></a>
                         <ul class="dropdown-menu">
-                            <li>
+                            <!-- <li>
                                 <a href="#"><i class="fa fa-fw fa-user"></i> Profile</a>
                             </li>
                             <li>
@@ -154,11 +151,14 @@
                             <li class="divider"></li>
                             <li>
                                 <a href="#"><i class="fa fa-fw fa-power-off"></i> Log Out</a>
-                            </li>
+                            </li> -->
                             <li>
-                                <a href="url_for('disconnect')">Logout </a>
+                                <a href="{{url_for('Logout')}}"><i class="fa fa-fw fa-power-off"></i> Logout </a>
                             </li>
                         </ul>
+                    {% else %}
+                        <!-- <a class="dropdown-toggle" href="url_for('showLogin')">Click Here to Login </a> -->
+                        <a class="toggle" href="{{url_for('Login')}}">Click Here to Login </a>
                     {% endif %}
                 </li>
             </ul>

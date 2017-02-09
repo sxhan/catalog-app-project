@@ -1,5 +1,6 @@
 import datetime as dt
 
+from flask_login import UserMixin
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -8,13 +9,14 @@ from sqlalchemy.orm import relationship
 Base = declarative_base()
 
 
-class User(Base):
+class User(Base, UserMixin):
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
     username = Column(String(250), nullable=True)
     password = Column(String(250), nullable=True)
     email = Column(String(250), nullable=True)
     isoauth = Column(Boolean, nullable=True)
+    is_active = Column(Boolean, nullable=True, default=True)
 
     @property
     def serialize(self):
@@ -23,8 +25,24 @@ class User(Base):
             'id': self.id,
             'name': self.username,
             'email': self.email,
-            'isoauth': self.isoauth
+            'isoauth': self.isoauth,
+            'is_active': self.is_active,
         }
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return unicode(self.id)
 
 
 class Category(Base):
