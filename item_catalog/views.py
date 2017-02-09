@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import time
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, jsonify, url_for, flash, session, abort
@@ -321,6 +322,7 @@ def Login():
 @login_required
 def Logout():
     logout_user()
+    flash("Successfully logged out!")
     return redirect(url_for("index"))
 
 

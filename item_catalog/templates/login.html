@@ -1,4 +1,6 @@
+{% import 'flash.html' as flash %}
 {% extends "base.html" %}
+
 {% block content %}
 <!--LOAD PRE-REQUISITES FOR GOOGLE SIGN IN -->
 <script src="//apis.google.com/js/platform.js?onload=start" async></script>
@@ -14,6 +16,10 @@
             <i class="glyphicon glyphicon-tag"></i> Login
         </li>
     </ol>
+</div>
+<div class="row" id="flash">
+    <!-- Flash -->
+    {{ flash.flash() }}
 </div>
 <div class="row banner menu">
     <div class="col-md-11 col-md-offset-1 padding-none">

@@ -1,10 +1,17 @@
-{% extends "base.html" %} {% block content %}
+{% import 'flash.html' as flash %}
+{% extends "base.html" %}
+
+{% block content %}
 <div class="row">
     <ol class="breadcrumb">
         <li>
             <i class="fa fa-home"></i>  <a href="{{url_for('index')}}">Home</a>
         </li>
     </ol>
+</div>
+<div class="row" id="flash">
+    <!-- Flash -->
+    {{ flash.flash() }}
 </div>
 <div class="row vdivide">
     <div class="col-xs-1"></div>
