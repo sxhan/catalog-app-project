@@ -436,72 +436,114 @@ def fbconnect():
         response = make_response(json.dumps('Invalid state parameter.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
+
     # Exchange client token for a long-lived server-side token
     access_token = request.data
-    print "access token received %s " % access_token
 
-    print app.config
-    app_id = app.config['FB_CLIENT_SECRETS']['web']['app_id']
-    app_secret = app.config['FB_CLIENT_SECRETS']['web']['app_secret']
-    # Send app_secret, app_id along with access token to verify both user and our server.
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
-        app_id, app_secret, access_token)
-    h = httplib2.Http()
-    # Get token. Note that it contains a 'expires' param
-    result = h.request(url, 'GET')[1]
+    # Get session info. Facebook sessio info object has the format
+    # {"user": "name",
+    #  "email": "email",
+    #  "facebook_id": "id",
+    #  "access_token": "stored_token",
+    #  "picture": "picture_data"}
+    session_info = auth.build_facebook_session(access_token)
 
-    # Use token to get user info from API
-    # userinfo_url = "https://graph.facebook.com/v2.4/me"
-    # strip expire tag from access token
-    token = result.split("&")[0]
+    # Check if we got all the required data back. If not, flash an error
+    # and return to login page
+    if session_info is None:
+        Logout()
+        response = make_response(json.dumps("Failed to exchange access token "
+                                            "for server-side token."), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
-    # get user info
-    url = 'https://graph.facebook.com/v2.4/me?%s&fields=name,id,email' % token
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[1]
-    # print "url sent for API access:%s"% url
-    # print "API JSON result: %s" % result
-    data = json.loads(result)
-    session['provider'] = 'facebook'
-    session['username'] = data["name"]
-    session['email'] = data["email"]
-    session['facebook_id'] = data["id"]
+    # Add session info to session
+    session["session_info"] = session_info
 
-    # The token must be stored in the session in order to properly logout, let's strip out the information before the equals sign in our token
-    stored_token = token.split("=")[1]
-    session['access_token'] = stored_token
-
-    # Get user picture
-    url = 'https://graph.facebook.com/v2.4/me/picture?%s&redirect=0&height=200&width=200' % token
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[1]
-    data = json.loads(result)
-
-    session['picture'] = data["data"]["url"]
-
-    # now apply same login logic as google api
-    # see if user exists
-    user = auth.query_oauth_user(session['email'])
+    # Get or create user
+    user = auth.query_oauth_user(session_info['email'])
     if not user:
-        user = auth.create_user(email=session["email"],
+        user = auth.create_user(username=session_info["user"],
+                                email=session_info["email"],
                                 isoauth=True)
-    user_id = user.id
-    session['user_id'] = user_id
 
-    output = ''
-    output += '<h1>Welcome, '
-    output += session['username']
+    # Login to our system
+    login_user(user)
 
-    output += '!</h1>'
-    output += '<img src="'
-    output += session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
-
-    flash("Now logged in as %s" % session['username'])
-    return output
+    # Return success response
+    response = make_response(json.dumps(
+        "Now logged in as %s" % session["session_info"]["user"]),
+        200)
+    response.headers['Content-Type'] = 'application/json'
+    return response
 
 
-# Sample HTTP error handling
+# DISCONNECT - Revoke a current user's token and reset their login_session
+@app.route('/gdisconnect')
+def gdisconnect():
+        # Only disconnect a connected user.
+    credentials = login_session.get('credentials')
+    if credentials is None:
+        response = make_response(
+            json.dumps('Current user not connected.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    access_token = credentials.access_token
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[0]
+
+    if result['status'] == '200':
+        response = make_response(json.dumps('Successfully disconnected.'), 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    else:
+        # For whatever reason, the given token was invalid.
+        response = make_response(
+            json.dumps('Failed to revoke token for given user.', 400))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+
+@app.route('/fbdisconnect')
+def fbdisconnect():
+    """Make HTTP to Facebook to revoke access token"""
+    if "facebook_id" or "access_token" not in session:
+        return None
+    else:
+        facebook_id = session['facebook_id']
+        # The access token must be included to successfully logout
+        access_token = session['access_token']
+        url = ('https://graph.facebook.com/%s/permissions?access_token=%s' %
+               (facebook_id, access_token))
+        h = httplib2.Http()
+        result = h.request(url, 'DELETE')[1]
+        return result
+
+
+# Add generalized disconnect function based on provider
+@app.route('/disconnect')
+def disconnect():
+    if 'provider' in login_session:  # To do this, we must add this in each of the login functions!
+        if login_session['provider'] == 'google':
+            gdisconnect()
+            del login_session['gplus_id']
+            del login_session['credentials']
+        if login_session['provider'] == 'facebook':
+            fbdisconnect()
+            del login_session['facebook_id']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        del login_session['user_id']
+        del login_session['provider']
+        flash("You have successfully been logged out.")
+        return redirect(url_for('showRestaurants'))
+    else:
+        flash("You were not logged in")
+        return redirect(url_for('showRestaurants'))
+
+# Simple HTTP error handling
 @app.errorhandler(404)
 def not_found(error):
     return str(error), 404

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 from urlparse import urlparse, urljoin
 
+import requests
 from flask import request
 from flask_login import LoginManager
 from sqlalchemy import create_engine
@@ -44,7 +45,9 @@ def create_user(username="", password="", email="", isoauth=False):
 
 def query_oauth_user(email):
     try:
-        user = db_session.query(models.User).filter_by(email=email, isoauth=True).one()
+        user = (db_session.query(models.User)
+                          .filter_by(email=email, isoauth=True)
+                          .one())
         return user
     except NoResultFound:
         pass
@@ -99,3 +102,53 @@ def is_safe_url(target):
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ('http', 'https') and \
         ref_url.netloc == test_url.netloc
+
+
+def build_facebook_session(client_token):
+    # Exchange client token for a long-lived server-side token
+    app_id = app.config['FB_CLIENT_SECRETS']['web']['app_id']
+    app_secret = app.config['FB_CLIENT_SECRETS']['web']['app_secret']
+    # Send app_secret, app_id along with access token to verify both user and
+    # our server.
+
+    url = ('https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s'  # NOQA
+           % (app_id, app_secret, client_token))
+
+    # Get response. This will be a string of format
+    # "access_token={TOKEN}&expires={TIME}"
+    r = requests.get(url)
+    if r.status_code == 200:
+        # strip expire tag from access token
+        token_qstring = r.content.split("&")[0]
+        # The token must be stored in the session in order to properly logout,
+        # let's strip out the information before the equals sign in our token
+        stored_token = token_qstring.split("=")[1]
+    else:
+        return None
+
+    # Use token to get user info from API
+    # userinfo_url = "https://graph.facebook.com/v2.4/me"
+    url = ('https://graph.facebook.com/v2.4/me?%s&fields=name,id,email'
+           % token_qstring)
+
+    # Get response. This will be a json response with (email, name, id)
+    r = requests.get(url)
+    if r.status_code == 200:
+        user_data = r.json()
+    else:
+        return None
+
+    # Get user picture
+    url = ('https://graph.facebook.com/v2.4/me/picture?%s&redirect=0&height=200&width=200'  # NOQA
+           % token_qstring)
+    r = requests.get(url)
+    if r.status_code == 200:
+        picture_data = r.json()
+    else:
+        return None
+
+    return {"user": user_data["name"],
+            "email": user_data["email"],
+            "facebook_id": user_data["id"],
+            "access_token": stored_token,
+            "picture": picture_data}
