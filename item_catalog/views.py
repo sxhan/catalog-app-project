@@ -274,7 +274,7 @@ def NewItem():
         item = models.Item(name=request.form["name"],
                            description=request.form["description"],
                            category_id=category.id,
-                           user_id=1)
+                           user_id=int(current_user.get_id()))
         # FIXME change user once user is implemented
         db_session.add(item)
         db_session.commit()
@@ -305,21 +305,40 @@ def DeleteCategory(category_id):
 @catch_exceptions
 def Login():
     """Main login view that supports basic form based login and OAuth login.
-    OAuth logins are initiated here but a different callback view is used.
+    OAuth logins are initiated here as well, but through a separate mechanism
+    initiated by client-side code.
     """
     # Anti x-site forgery attack
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
     session['state'] = state
 
+    # Handle POST request (submit user/pass)
     if request.method == "POST":
+        if "username" not in request.form or "password" not in request.form:
+            flash("Username or password missing")
+            return render_template("login.html",
+                                   STATE=state,
+                                   username=request.form.get("username", ""),
+                                   password=request.form.get("password", ""))
         # Login and validate the user.
         # user should be an instance of your `User` class
+        # FIXME: ADD PROPER PASSWORD HASHING VALIDATION
         try:
-            user = db_session.query(models.User).filter_by(id=1).one()
+            username = request.form.get("username")
+            password = request.form.get("password")
+            user = (db_session.query(models.User)
+                              .filter_by(username=username)
+                              .filter_by(password=password)
+                              .one())
         except NoResultFound:
-            abort(404)
+            flash("Incorrect credentials")
+            return render_template("login.html",
+                                   STATE=state,
+                                   username=username,
+                                   password=password)
 
+        # Successful login if we can find corresponding user
         login_user(user)
 
         flash('Logged in successfully.')
@@ -332,6 +351,8 @@ def Login():
             return abort(500)
 
         return redirect(next_url or url_for("index"))
+
+    # Render page for GET request
     else:
         return render_template("login.html",
                                STATE=state)
