@@ -329,7 +329,7 @@ def Login():
         # is_safe_url should check if the url is safe for redirects.
         # See http://flask.pocoo.org/snippets/62/ for an example.
         if not auth.is_safe_url(next_url):
-            return abort(400)
+            return abort(500)
 
         return redirect(next_url or url_for("index"))
     else:
@@ -342,6 +342,12 @@ def Login():
 def Logout():
     """Generic logout view. Handles OAuth as well"""
     if "session_info" in session:
+        if session["session_info"]["provider"] == auth.PROVIDER_FACEBOOK:
+            # Have facebook revoke access token
+            fbdisconnect()
+        elif session["session_info"]["provider"] == auth.PROVIDER_GOOGLE:
+            # TODO Have google revoke the token
+            pass
         del session["session_info"]
     logout_user()
     flash("Successfully logged out!")
@@ -454,7 +460,8 @@ def fbconnect():
     access_token = request.data
 
     # Get session info. Facebook sessio info object has the format
-    # {"user": "name",
+    # {"provider": "provider",
+    #  "user": "name",
     #  "email": "email",
     #  "facebook_id": "id",
     #  "access_token": "stored_token",
@@ -518,24 +525,15 @@ def gdisconnect():
         return response
 
 
-@app.route('/fbdisconnect')
 def fbdisconnect():
-    """Make HTTP to Facebook to revoke access token"""
-    if "facebook_id" or "access_token" not in session:
+    """Make HTTP to Facebook to revoke access token. Doesn't do anything about
+    the session or session objects!!!"""
+    if "session_info" not in session:
         # For whatever reason, the given token was invalid.
-        response = make_response(
-            json.dumps('Failed to revoke token for given user.', 500))
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        response = json.dumps("Doesn't look like you were logged in")
     else:
-        facebook_id = session['facebook_id']
-        # The access token must be included to successfully logout
-        access_token = session['access_token']
-        url = ('https://graph.facebook.com/%s/permissions?access_token=%s' %
-               (facebook_id, access_token))
-        h = httplib2.Http()
-        result = h.request(url, 'DELETE')[1]
-        return result
+        response = auth.fb_disconnect(session["session_info"])
+    return response
 
 
 # Simple HTTP error handling

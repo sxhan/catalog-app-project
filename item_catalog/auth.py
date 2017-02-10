@@ -12,6 +12,9 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from . import app, models
 
+PROVIDER_FACEBOOK = "facebook"
+PROVIDER_GOOGLE = "google+"
+
 
 # Connect to Database and create database session
 engine = create_engine(app.config["DB_STRING"])
@@ -147,8 +150,21 @@ def build_facebook_session(client_token):
     else:
         return None
 
-    return {"user": user_data["name"],
+    return {"provider": PROVIDER_FACEBOOK,
+            "user": user_data["name"],
             "email": user_data["email"],
             "facebook_id": user_data["id"],
             "access_token": stored_token,
             "picture": picture_data}
+
+
+def fb_disconnect(session_info):
+    """Disconnects from Facebook by having Facebook revoke the access token.
+    """
+    facebook_id = session_info['facebook_id']
+    # The access token must be included to successfully logout
+    access_token = session_info['access_token']
+    url = ('https://graph.facebook.com/%s/permissions?access_token=%s' %
+           (facebook_id, access_token))
+    r = requests.delete(url)
+    return r.json()
