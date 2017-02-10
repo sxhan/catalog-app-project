@@ -9,7 +9,7 @@ from functools import wraps
 
 from flask import (render_template, request, redirect, url_for,
                    flash, session, abort, make_response)
-from flask_login import login_user, login_required, logout_user
+from flask_login import login_user, login_required, logout_user, current_user
 
 from sqlalchemy import create_engine, asc, desc
 from sqlalchemy.orm import sessionmaker
@@ -55,7 +55,8 @@ def get_ordered_categories():
 @app.route('/')
 @app.route('/catalog/')
 def index():
-    print session
+    """Front page"""
+    print "session: {}".format(session)
     categories = db_session.query(models.Category) \
                            .order_by(asc(models.Category.name))
     items = db_session.query(models.Item) \
@@ -108,6 +109,7 @@ def ShowCategory(category_name):
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/')
 def ShowItem(category_name, item_name):
+    """View of a single item"""
     try:
         category, item = (
             db_session.query(models.Category, models.Item)
@@ -128,7 +130,7 @@ def ShowItem(category_name, item_name):
            methods=['GET', 'POST'])
 @login_required
 def EditItem(category_name, item_name):
-
+    """View for editing an item. Only accessible by item's owner."""
     # Get Item
     try:
         category, item = (
@@ -141,6 +143,11 @@ def EditItem(category_name, item_name):
     except Exception:
         logging.error("something went wrong", exc_info=True)
         return abort(500)
+
+    # Only owner can perform this action
+    # current_user.get_id will return None if user is not logged in
+    if item.user.id != int(current_user.get_id()):
+        return abort(403)
 
     if request.method == 'POST':
         # Check 1: Ensure that all fields are passed back and has value
@@ -190,22 +197,24 @@ def EditItem(category_name, item_name):
            methods=["GET", "POST"])
 @login_required
 def DeleteItem(category_name, item_name):
+    """View for deleting an item. Only accessible by item's owner."""
+    # Get item and category
     try:
         category, item = (
             db_session.query(models.Category, models.Item)
                       .filter(models.Category.id == models.Item.category_id)
                       .filter(models.Category.name == category_name)
                       .filter(models.Item.name == item_name).one())
-
-        # Only owner can perform this action
-        # FIXME change hard coded item value
-        if item.user.id != 1:
-            return abort(403)
     except NoResultFound:
         return abort(404)
     except Exception:
         logging.error("something went wrong", exc_info=True)
         return abort(500)
+
+    # Only owner can perform this action
+    # current_user.get_id will return None if user is not logged in
+    if item.user.id != int(current_user.get_id()):
+        return abort(403)
 
     if request.method == 'POST':
         if 'confirm' in request.form and request.form["confirm"] == "true":
@@ -222,9 +231,9 @@ def DeleteItem(category_name, item_name):
 
 
 @app.route('/catalog/item/new/', methods=['GET', 'POST'])
-@catch_exceptions
 @login_required
 def NewItem():
+    """View for creating a new item. User must be logged in"""
     # This will be useful later
     categories = get_ordered_categories()
 
@@ -331,6 +340,9 @@ def Login():
 @app.route("/logout/")
 @login_required
 def Logout():
+    """Generic logout view. Handles OAuth as well"""
+    if "session_info" in session:
+        del session["session_info"]
     logout_user()
     flash("Successfully logged out!")
     return redirect(request.args.get('next') or url_for("index"))
@@ -431,6 +443,7 @@ def gconnect():
 
 @app.route('/fbconnect', methods=['POST'])
 def fbconnect():
+    """URL accessed by client-side oauth login code."""
     # Protect against cross site reference forgery attacks
     if request.args.get('state') != session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
@@ -500,7 +513,7 @@ def gdisconnect():
     else:
         # For whatever reason, the given token was invalid.
         response = make_response(
-            json.dumps('Failed to revoke token for given user.', 400))
+            json.dumps('Failed to revoke token for given user.', 500))
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -509,7 +522,11 @@ def gdisconnect():
 def fbdisconnect():
     """Make HTTP to Facebook to revoke access token"""
     if "facebook_id" or "access_token" not in session:
-        return None
+        # For whatever reason, the given token was invalid.
+        response = make_response(
+            json.dumps('Failed to revoke token for given user.', 500))
+        response.headers['Content-Type'] = 'application/json'
+        return response
     else:
         facebook_id = session['facebook_id']
         # The access token must be included to successfully logout
@@ -519,14 +536,6 @@ def fbdisconnect():
         h = httplib2.Http()
         result = h.request(url, 'DELETE')[1]
         return result
-
-
-# Add generalized disconnect function based on provider
-@app.route('/disconnect')
-def disconnect():
-    if "session_info" in session:
-        del session["session_info"]
-    return Logout()
 
 
 # Simple HTTP error handling
