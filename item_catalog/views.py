@@ -8,7 +8,7 @@ import httplib2
 from functools import wraps
 
 from flask import (render_template, request, redirect, url_for,
-                   flash, session, abort, make_response)
+                   flash, session, abort, make_response, jsonify)
 from flask_login import login_user, login_required, logout_user, current_user
 
 from sqlalchemy import create_engine, asc, desc
@@ -60,10 +60,26 @@ def index():
     categories = db_session.query(models.Category) \
                            .order_by(asc(models.Category.name))
     items = db_session.query(models.Item) \
-                      .order_by(desc(models.Item.updated_date))
+                      .order_by(desc(models.Item.updated_date))[:10]
     return render_template('index.html',
                            categories=categories,
                            items=items)
+
+
+@app.route('.json/')
+@app.route('/catalog.json/')
+def indexJson():
+    """Json version of front page"""
+    categories = db_session.query(models.Category) \
+                           .order_by(asc(models.Category.name))
+    items = db_session.query(models.Item) \
+                      .order_by(desc(models.Item.updated_date))[:10]
+
+    # Make json response
+    results = {"Category": {c.serialize for c in categories},
+               "Items": {i.serialize for i in items}}
+
+    return jsonify(results)
 
 
 ##################
@@ -86,9 +102,30 @@ def NewCategory():
         return render_template('newCategory.html')
 
 
-@app.route('/catalog/<string:category_name>/')
-@app.route('/catalog/<string:category_name>/items/')
+@app.route("/catalog/<string:category_name>/")
+@app.route("/catalog/<string:category_name>/items/")
 def ShowCategory(category_name):
+    # Get category
+    try:
+        category = db_session.query(models.Category) \
+                             .filter_by(name=category_name).one()
+        items = db_session.query(models.Item).join(models.Category) \
+                          .filter(models.Category.name == category_name).all()
+    except NoResultFound:
+        return abort(404)
+    except Exception:
+        logging.error("Unhandled error in ShowCategory", exc_info=True)
+        return abort(500)
+
+    return render_template("showCategory.html",
+                           items=items,
+                           category=category,
+                           categories=get_ordered_categories())
+
+
+@app.route("/catalog/<string:category_name>.json/")
+@app.route("/catalog/<string:category_name>/items.json/")
+def ShowCategoryJson(category_name):
     # Get category
     try:
         category = db_session.query(models.Category) \
@@ -101,10 +138,11 @@ def ShowCategory(category_name):
         logging.error("", exc_info=True)
         return abort(500)
 
-    return render_template('showCategory.html',
-                           items=items,
-                           category=category,
-                           categories=get_ordered_categories())
+    # Make json response
+    results = {"Category": category.serialize,
+               "Items": {i.serialize for i in items}}
+
+    return jsonify(results)
 
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/')
@@ -124,6 +162,25 @@ def ShowItem(category_name, item_name):
     return render_template("showItem.html",
                            category=category,
                            item=item)
+
+
+@app.route('/catalog/<string:category_name>/<string:item_name>.json/')
+def ShowItemJson(category_name, item_name):
+    """View of a single item"""
+    try:
+        category, item = (
+            db_session.query(models.Category, models.Item)
+                      .filter(models.Category.id == models.Item.category_id)
+                      .filter(models.Category.name == category_name)
+                      .filter(models.Item.name == item_name).one())
+    except NoResultFound:
+        return abort(404)
+    except Exception:
+        logging.error("Unhandled error in ShowItemJson", exc_info=True)
+        return abort(500)
+
+    # Make json response
+    return jsonify(item.serialize)
 
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/edit/',
@@ -275,7 +332,6 @@ def NewItem():
                            description=request.form["description"],
                            category_id=category.id,
                            user_id=int(current_user.get_id()))
-        # FIXME change user once user is implemented
         db_session.add(item)
         db_session.commit()
         return redirect(url_for("ShowCategory",
