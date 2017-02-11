@@ -91,7 +91,3 @@ class Item(Base):
             'category_id': self.category_id,
             'user_id': self.user_id
         }
-#
-# engine = create_engine('sqlite:///categoryapp.db')
-#
-# Base.metadata.create_all(engine)
