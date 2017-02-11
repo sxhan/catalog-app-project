@@ -5,7 +5,7 @@ and allows users to perform CRUD operations on items. This application is built
 on Flask, and leverages Facebook's OAuth capabilities.
 
 ## Demo Site:
-TODO
+See it in action [here](http://catalog.thoughtforyourthoughts.com/)
 
 ## Prerequisites
 - [Vagrant](http://vagrantup.com/)
