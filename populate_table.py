@@ -43,7 +43,7 @@ def add_item(name, description, category_id, user_id):
 
 
 # Create users
-root = create_user(username="root", password="root",
+root = create_user(username="root", password="$2b$12$rHHm1D428eqSMM9XFz3Qzu2NobIBnU/Hs3XPRWvCd1gcc8QDAtxAq",
                    email="root@root.root", isoauth=False)
 
 # Create categories

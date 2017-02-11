@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 import logging
+import hmac
 from urlparse import urlparse, urljoin
 
 import requests
+import bcrypt
 from flask import request
 from flask_login import LoginManager
 from sqlalchemy import create_engine
@@ -27,6 +29,13 @@ db_session = DBSession()
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "Login"
+
+
+def make_pw_hash(username, password, salt=None):
+    """Used to create password hash as well as verify passwords."""
+    if salt is None:
+        salt = bcrypt.gensalt()
+    return bcrypt.hashpw(username + password, salt)
 
 
 def create_user(username="", password="", email="", isoauth=False):

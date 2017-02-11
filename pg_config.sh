@@ -2,6 +2,8 @@ apt-get -qqy update
 apt-get -qqy install postgresql python-psycopg2
 apt-get -qqy install python-flask python-sqlalchemy
 apt-get -qqy install python-pip
+apt-get -qqy install python-dev
+apt-get -qqy install libffi-de
 pip install bleach
 pip install oauth2client
 pip install requests
@@ -11,6 +13,7 @@ pip install passlib
 pip install itsdangerous
 pip install flask-httpauth
 pip install flask_login
+pip install bcrypt
 su postgres -c 'createuser -dRS vagrant'
 su vagrant -c 'createdb'
 su vagrant -c 'createdb forum'

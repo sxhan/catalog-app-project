@@ -66,7 +66,6 @@ def index():
                            items=items)
 
 
-@app.route('.json/')
 @app.route('/catalog.json/')
 def indexJson():
     """Json version of front page"""
@@ -358,7 +357,6 @@ def DeleteCategory(category_id):
 
 
 @app.route('/login/', methods=['GET', 'POST'])
-@catch_exceptions
 def Login():
     """Main login view that supports basic form based login and OAuth login.
     OAuth logins are initiated here as well, but through a separate mechanism
@@ -379,20 +377,31 @@ def Login():
                                    password=request.form.get("password", ""))
         # Login and validate the user.
         # user should be an instance of your `User` class
-        # FIXME: ADD PROPER PASSWORD HASHING VALIDATION
         try:
             username = request.form.get("username")
             password = request.form.get("password")
+
             user = (db_session.query(models.User)
                               .filter_by(username=username)
-                              .filter_by(password=password)
                               .one())
+
+            # check hashed pw
+            if auth.make_pw_hash(str(username),
+                                 str(password),
+                                 str(user.password)) != user.password:
+                # Technically not the right error to raise, but we want the
+                # same results
+                raise NoResultFound
+
         except NoResultFound:
             flash("Incorrect credentials")
             return render_template("login.html",
                                    STATE=state,
                                    username=username,
-                                   password=password)
+                                   password="")
+        except Exception:
+            logging.error("Unhandled error in Login!", exc_info=True)
+            abort(500)
 
         # Successful login if we can find corresponding user
         login_user(user)
