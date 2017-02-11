@@ -66,7 +66,8 @@ def index():
                            items=items)
 
 
-@app.route('/catalog.json/')
+@app.route("/json/")
+@app.route("/catalog/json/")
 def indexJson():
     """Json version of front page"""
     categories = db_session.query(models.Category) \
@@ -75,8 +76,8 @@ def indexJson():
                       .order_by(desc(models.Item.updated_date))[:10]
 
     # Make json response
-    results = {"Category": {c.serialize for c in categories},
-               "Items": {i.serialize for i in items}}
+    results = {"Categories": [c.serialize for c in categories],
+               "Items": [i.serialize for i in items]}
 
     return jsonify(results)
 
@@ -122,8 +123,8 @@ def ShowCategory(category_name):
                            categories=get_ordered_categories())
 
 
-@app.route("/catalog/<string:category_name>.json/")
-@app.route("/catalog/<string:category_name>/items.json/")
+@app.route("/catalog/<string:category_name>/json/")
+@app.route("/catalog/<string:category_name>/items/json/")
 def ShowCategoryJson(category_name):
     # Get category
     try:
@@ -139,7 +140,7 @@ def ShowCategoryJson(category_name):
 
     # Make json response
     results = {"Category": category.serialize,
-               "Items": {i.serialize for i in items}}
+               "Items": [i.serialize for i in items]}
 
     return jsonify(results)
 
@@ -163,7 +164,7 @@ def ShowItem(category_name, item_name):
                            item=item)
 
 
-@app.route('/catalog/<string:category_name>/<string:item_name>.json/')
+@app.route('/catalog/<string:category_name>/<string:item_name>/json/')
 def ShowItemJson(category_name, item_name):
     """View of a single item"""
     try:
