@@ -616,5 +616,12 @@ def fbdisconnect():
 # Simple HTTP error handling
 @app.errorhandler(404)
 def not_found(error):
-    return str(error), 404
+    # return str(error), 404
     return render_template('404.html'), 404
+
+
+# Simple HTTP error handling
+@app.errorhandler(500)
+def internal_error(error):
+    # return str(error), 500
+    return render_template('500.html'), 500
