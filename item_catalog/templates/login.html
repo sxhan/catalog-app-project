@@ -44,10 +44,10 @@
         <!-- <h3></h3> -->
         <br />
         <!-- Google+ Sign In Button-->
-        <div id="signInButton">
+        <!-- <div id="signInButton">
             <span class="g-signin" data-scope="openid email" data-clientid="1054005518152-2fcvq267d3fhgitb86llkephcpjbr0kc.apps.googleusercontent.com" data-redirecturi="postmessage" data-accesstype="offline" data-cookiepolicy="single_host_origin" data-callback="signInCallback" data-approvalprompt="force">
             </span>
-        </div>
+        </div> -->
         <!-- FB Login Sign In Button -->
         <fb:login-button scope="public_profile,email" onlogin="sendTokenToServer();"> <!-- defines scope of authorization and invokes the sendTokenToServer function -->
         <a href="javascript:sendTokenToServer()">Login with Facebook</a>
@@ -100,7 +100,7 @@
                             $('#result').html('Login Successful! Redirecting...')
                             setTimeout(function() {
                                 window.location.href = "{{url_for('index')}}";
-                            }, 4000);
+                            }, 2000);
                         } else {
                             $('#result').html('Failed to make a server-side call. Check your configuration and console.');
                         }
