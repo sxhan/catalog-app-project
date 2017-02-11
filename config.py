@@ -11,9 +11,7 @@ SECRET_KEY = "secret"
 
 DB_STRING = 'sqlite:///categoryapp.db'
 
-FB_CLIENT_SECRETS = {
-    "web": {
-        "app_id": "1293669250698238",
-        "app_secret": "d56adf9a6e289490202f3edf4ff4e5b0"
-    }
-}
+FB_CLIENT_SECRETS = None
+
+# This is used for the config loading system
+REQUIRED_CUSTOM_CONFIGS = ("FB_CLIENT_SECRETS", )

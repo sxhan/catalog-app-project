@@ -45,5 +45,4 @@ if __name__ == '__main__':
                         type=str, help="host ip", default="0.0.0.0")
     args = parser.parse_args()
 
-    app.config.from_object('config')
     app.run(host=args.ip, port=args.port)

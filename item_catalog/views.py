@@ -56,7 +56,7 @@ def get_ordered_categories():
 @app.route('/catalog/')
 def index():
     """Front page"""
-    print "session: {}".format(session)
+    # print "session: {}".format(session)
     categories = db_session.query(models.Category) \
                            .order_by(asc(models.Category.name))
     items = db_session.query(models.Item) \
