@@ -11,6 +11,14 @@ SECRET_KEY = "secret"
 
 DB_STRING = 'sqlite:///categoryapp.db'
 
+# Client secrets json for facebook OAuth login. Format:
+# FB_CLIENT_SECRETS = {
+#     "web": {
+#         "app_id": "",
+#         "app_secret": ""
+#     }
+# }
+
 FB_CLIENT_SECRETS = None
 
 # This is used for the config loading system
