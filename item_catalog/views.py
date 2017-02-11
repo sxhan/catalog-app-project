@@ -363,6 +363,7 @@ def Login():
     OAuth logins are initiated here as well, but through a separate mechanism
     initiated by client-side code.
     """
+
     # Anti x-site forgery attack
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
@@ -375,7 +376,8 @@ def Login():
             return render_template("login.html",
                                    STATE=state,
                                    username=request.form.get("username", ""),
-                                   password=request.form.get("password", ""))
+                                   password=request.form.get("password", ""),
+                                   fb_app_id=auth.get_fb_app_id())
         # Login and validate the user.
         # user should be an instance of your `User` class
         try:
@@ -399,7 +401,8 @@ def Login():
             return render_template("login.html",
                                    STATE=state,
                                    username=username,
-                                   password="")
+                                   password="",
+                                   fb_app_id=auth.get_fb_app_id())
         except Exception:
             logging.error("Unhandled error in Login!", exc_info=True)
             abort(500)
@@ -421,7 +424,8 @@ def Login():
     # Render page for GET request
     else:
         return render_template("login.html",
-                               STATE=state)
+                               STATE=state,
+                               fb_app_id=auth.get_fb_app_id())
 
 
 @app.route("/logout/")

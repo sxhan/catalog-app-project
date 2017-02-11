@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from item_catalog.models import Base, Category, Item, User
 from item_catalog.auth import create_user
-from run import app
+from start_app import app
 
 engine = create_engine(app.config["DB_STRING"])
 # Bind the engine to the metadata of the Base class so that the

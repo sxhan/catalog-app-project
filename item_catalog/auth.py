@@ -116,6 +116,18 @@ def is_safe_url(target):
         ref_url.netloc == test_url.netloc
 
 
+def get_fb_app_id():
+    """helper function to get the facebook app id stored in config, if
+    it exists. Returns the dictionary if it exists, or None otherwise.
+    """
+    if "FB_CLIENT_SECRETS" in app.config and \
+       "web" in app.config["FB_CLIENT_SECRETS"] and \
+       "app_id" in app.config["FB_CLIENT_SECRETS"]["web"]:
+        return app.config["FB_CLIENT_SECRETS"]["web"]["app_id"]
+    else:
+        return None
+
+
 def build_facebook_session(client_token):
     # Exchange client token for a long-lived server-side token
     app_id = app.config['FB_CLIENT_SECRETS']['web']['app_id']
