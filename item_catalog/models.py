@@ -10,6 +10,9 @@ Base = declarative_base()
 
 
 class User(Base, UserMixin):
+    """Model of a user. The UserMixin allows flask_login to use this class for
+    a global authentication check mechanism.
+    """
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
     username = Column(String(250), nullable=True)
@@ -46,6 +49,8 @@ class User(Base, UserMixin):
 
 
 class Category(Base):
+    """Model for a category object.
+    """
     __tablename__ = 'category'
 
     id = Column(Integer, primary_key=True)
@@ -66,6 +71,9 @@ class Category(Base):
 
 
 class Item(Base):
+    """Model for an item object. An item must belong to a category, and is
+    associated with a creator.
+    """
     __tablename__ = "item"
 
     id = Column(Integer, primary_key=True)

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import hmac
 from urlparse import urlparse, urljoin
 
 import requests
@@ -39,6 +38,15 @@ def make_pw_hash(username, password, salt=None):
 
 
 def create_user(username="", password="", email="", isoauth=False):
+    """Creates a new user. This function is used for both OAuth logins, as well
+    as native logins.
+
+    When creating an OAuth user, 'isoauth' should be True, 'email' is required,
+    and the other kwargs are optional.
+
+    When creating a regular user, isoauth should be False, and 'username'
+    and 'password' are required.
+    """
     if isoauth:
         if not email:
             raise ValueError("Email is required for an oauth signup")
@@ -56,6 +64,9 @@ def create_user(username="", password="", email="", isoauth=False):
 
 
 def query_oauth_user(email):
+    """Attemps to find an oauth type user with a given email address.
+    Returns None if this fails.
+    """
     try:
         user = (db_session.query(models.User)
                           .filter_by(email=email, isoauth=True)
@@ -88,7 +99,7 @@ def form_login(username, password):
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Callback function used by login_manager plugin. It should take the
+    """Callback function used by flask_login plugin. It should take the
     unicode ID of a user, and return the corresponding user object.
     It should return None (not raise an exception) if the ID is not valid.
     (In that case, the ID will manually be removed from the session and
@@ -129,7 +140,9 @@ def get_fb_app_id():
 
 
 def build_facebook_session(client_token):
-    # Exchange client token for a long-lived server-side token
+    """Exchange client token for a long-lived server-side token
+    """
+
     app_id = app.config['FB_CLIENT_SECRETS']['web']['app_id']
     app_secret = app.config['FB_CLIENT_SECRETS']['web']['app_secret']
     # Send app_secret, app_id along with access token to verify both user and
