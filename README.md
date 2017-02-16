@@ -4,7 +4,7 @@ A database driven web page that allows users to create categories and items,
 and allows users to perform CRUD operations on items. This application is built
 on Flask, and leverages Facebook's OAuth capabilities.
 
-## Demo Site:
+## Demo Site
 See it in action [here](http://catalog.thoughtforyourthoughts.com/)
 
 ## Prerequisites
