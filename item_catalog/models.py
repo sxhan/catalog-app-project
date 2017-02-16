@@ -97,8 +97,8 @@ class Item(Base):
 
     # Ensure item uniqueness at database level
     # NOTE: the comma at the end is required to make it a tuple!
-    __table_args__ = (UniqueConstraint('name', 'category_id', 'user_id',
-                                       name='_name_category_user'),)
+    __table_args__ = (UniqueConstraint('name', 'category_id',
+                                       name='_name_category'),)
 
     @property
     def serialize(self):
