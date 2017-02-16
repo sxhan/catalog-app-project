@@ -1,7 +1,8 @@
 import datetime as dt
 
 from flask_login import UserMixin
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime
+from sqlalchemy import (Column, ForeignKey, Integer, String, Boolean, DateTime,
+                        UniqueConstraint)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 # from sqlalchemy import create_engine
@@ -20,6 +21,11 @@ class User(Base, UserMixin):
     email = Column(String(250), nullable=True)
     isoauth = Column(Boolean, nullable=True)
     is_active = Column(Boolean, nullable=True, default=True)
+
+    # this should ensure separation between regular users and email users
+    # NOTE: the comma at the end is required to make it a tuple!
+    __table_args__ = (UniqueConstraint('username', 'email', 'isoauth',
+                                       name='_username_email_isoauth'),)
 
     @property
     def serialize(self):
@@ -54,7 +60,7 @@ class Category(Base):
     __tablename__ = 'category'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
+    name = Column(String(250), nullable=False, unique=True)
     created_date = Column(DateTime,
                           default=dt.datetime.utcnow())
     updated_date = Column(DateTime,
@@ -85,9 +91,14 @@ class Item(Base):
                           default=dt.datetime.utcnow(),
                           onupdate=dt.datetime.utcnow())
     category_id = Column(Integer, ForeignKey('category.id'))
-    category = relationship(Category)
+    category = relationship(Category, cascade="save-update, merge, delete")
     user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user = relationship(User, cascade="save-update, merge, delete")
+
+    # Ensure item uniqueness at database level
+    # NOTE: the comma at the end is required to make it a tuple!
+    __table_args__ = (UniqueConstraint('name', 'category_id', 'user_id',
+                                       name='_name_category_user'),)
 
     @property
     def serialize(self):

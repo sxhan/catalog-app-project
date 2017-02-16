@@ -384,7 +384,8 @@ def Login():
             password = request.form.get("password")
 
             user = (db_session.query(models.User)
-                              .filter_by(username=username)
+                              .filter_by(username=username,
+                                         isoauth=False)
                               .one())
 
             # check hashed pw
