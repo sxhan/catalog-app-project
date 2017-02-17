@@ -4,10 +4,21 @@ from flask_login import UserMixin
 from sqlalchemy import (Column, ForeignKey, Integer, String, Boolean, DateTime,
                         UniqueConstraint)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy import create_engine
+from sqlalchemy.orm import relationship, sessionmaker
+
+from . import app
+
 # from sqlalchemy import create_engine
 
 Base = declarative_base()
+
+# Connect to Database and create database session
+engine = create_engine(app.config["DB_STRING"])
+Base.metadata.bind = engine
+
+DBSession = sessionmaker(bind=engine)
+db_session = DBSession()
 
 
 class User(Base, UserMixin):

@@ -7,8 +7,6 @@ import requests
 import bcrypt
 from flask import request
 from flask_login import LoginManager
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
 from . import app, models
@@ -16,18 +14,12 @@ from . import app, models
 PROVIDER_FACEBOOK = "facebook"
 PROVIDER_GOOGLE = "google+"
 
-
-# Connect to Database and create database session
-engine = create_engine(app.config["DB_STRING"])
-models.Base.metadata.bind = engine
-
-DBSession = sessionmaker(bind=engine)
-db_session = DBSession()
-
 # Set up login_manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "Login"
+
+db_session = models.db_session
 
 
 def make_pw_hash(username, password, salt=None):

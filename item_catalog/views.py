@@ -10,19 +10,13 @@ from flask import (render_template, request, redirect, url_for,
                    flash, session, abort, make_response, jsonify)
 from flask_login import login_user, login_required, logout_user, current_user
 
-from sqlalchemy import create_engine, asc, desc
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import asc, desc
 from sqlalchemy.orm.exc import NoResultFound
 
 from . import app, models, auth
 
 
-# Connect to Database and create database session
-engine = create_engine(app.config["DB_STRING"])
-models.Base.metadata.bind = engine
-
-DBSession = sessionmaker(bind=engine)
-db_session = DBSession()
+db_session = models.db_session
 
 
 def catch_exceptions(f):
