@@ -11,8 +11,8 @@ See it in action [here](http://catalog.thoughtforyourthoughts.com/)
 - [VirtualBox](https://www.virtualbox.org/)
 
 ## Setup
-1. Clone the repository at https://github.com/sxhan/udacity-fsnd-project-5
-2. cd into the project directory: `cd udacity-fsnd-project-5`
+1. Clone the repository at `git clone git@github.com:sxhan/catalog-app-project.git`
+2. cd into the project directory: `cd catalog-app-project`
 3. Launch the Vagrant VM: `vagrant up`. This must be done inside the vagrant directory, where there is a file called `Vagrantfile`
 4. Login to the vm: `vagrant ssh`
 5. cd to the project directory: `cd /vagrant`
