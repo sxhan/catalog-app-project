@@ -1,0 +1,28 @@
+[{
+    "id": 1,
+    "name": "Soccer"
+}, {
+    "id": 2,
+    "name": "Basketball"
+}, {
+    "id": 3,
+    "name": "Baseball"
+}, {
+    "id": 4,
+    "name": "Frisbee"
+}, {
+    "id": 5,
+    "name": "Snowboarding"
+}, {
+    "id": 6,
+    "name": "Rock Climbing"
+}, {
+    "id": 7,
+    "name": "Foosball"
+}, {
+    "id": 8,
+    "name": "Skating"
+}, {
+    "id": 9,
+    "name": "Hockey"
+}]

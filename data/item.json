@@ -1,0 +1,48 @@
+[{
+    "id": 1,
+    "name": "Snowboard",
+    "description": "Best for any terrain and conditions. All-mountain...",
+    "category_id": 5,
+    "user_id": 1
+}, {
+    "id": 2,
+    "name": "Goggles",
+    "description": "Fun pair of trendy goggles!",
+    "category_id": 5,
+    "user_id": 1
+}, {
+    "id": 3,
+    "name": "Stick",
+    "description": "Its brown and sticky",
+    "category_id": 9,
+    "user_id": 1
+}, {
+    "id": 4,
+    "name": "Shinguards",
+    "category_id": 1,
+    "user_id": 1
+}, {
+    "id": 5,
+    "name": "Frisbee",
+    "description": "You threw this at your dog once and it hit him in the face",
+    "category_id": 4,
+    "user_id": 1
+}, {
+    "id": 6,
+    "name": "Bat",
+    "description": "Not the kind that Ozzy Ate",
+    "category_id": 3,
+    "user_id": 1
+}, {
+    "id": 7,
+    "name": "Jersey",
+    "description": "Shore",
+    "category_id": 1,
+    "user_id": 1
+}, {
+    "id": 8,
+    "name": "Soccer cleats",
+    "description": "Its like wearing sonic on your feet",
+    "category_id": 3,
+    "user_id": 1
+}]
