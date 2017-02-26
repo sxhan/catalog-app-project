@@ -3,3 +3,4 @@ instance/
 *.db
 *.db-journal
 .vagrant/
+node_modules/
