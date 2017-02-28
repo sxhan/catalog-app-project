@@ -44,5 +44,5 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--ip",
                         type=str, help="host ip", default="0.0.0.0")
     args = parser.parse_args()
-
+    print "serving on %s:%s" % (args.ip, args.port)
     app.run(host=args.ip, port=args.port)

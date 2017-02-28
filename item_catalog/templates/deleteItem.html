@@ -32,6 +32,7 @@
         Are you sure you want to delete {{name}}?
         <form method="post">
             <div class="form-group">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" class="form-control" maxlength="100" name="confirm" value="true">
                 <br />
                 <button type="submit" class="btn btn-default" id="submit" type="submit">
