@@ -1,4 +1,4 @@
-# Udaciy Full Stack Web Developer Nanodegree Project 5: Catalog App
+# Udacity Full Stack Web Developer Nanodegree Project 5: Catalog App
 A database driven web page that allows users to create categories and items,
 and allows users to perform CRUD operations on items. This application is built
 on Flask, and leverages Facebook's OAuth capabilities.
