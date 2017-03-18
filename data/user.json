@@ -3,5 +3,5 @@
     "username": "root",
     "password": "$2b$12$rHHm1D428eqSMM9XFz3Qzu2NobIBnU/Hs3XPRWvCd1gcc8QDAtxAq",
     "email": "root@root.root",
-    "isoauth": 0
+    "isoauth": false
 }]
