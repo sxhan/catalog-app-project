@@ -13,7 +13,7 @@ pip install passlib
 pip install itsdangerous
 pip install flask-httpauth
 pip install flask_login
-pip install flash-csrf
+pip install flask-seasurf
 pip install bcrypt
 su postgres -c 'createuser -dRS vagrant'
 su vagrant -c 'createdb'

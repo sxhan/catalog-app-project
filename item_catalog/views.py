@@ -13,7 +13,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 from sqlalchemy import asc, desc
 from sqlalchemy.orm.exc import NoResultFound
 
-from . import app, models, auth
+from . import app, models, auth, csrf
 
 
 db_session = models.db_session
@@ -377,6 +377,7 @@ def Login():
             username = request.form.get("username")
             password = request.form.get("password")
 
+
             user = (db_session.query(models.User)
                               .filter_by(username=username,
                                          isoauth=False)
@@ -439,6 +440,7 @@ def Logout():
     return redirect(request.args.get('next') or url_for("index"))
 
 
+@csrf.exempt
 @app.route('/fbconnect', methods=['POST'])
 def fbconnect():
     """URL accessed by client-side oauth login code."""

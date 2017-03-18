@@ -2,7 +2,7 @@ import sys
 import logging
 
 from flask import Flask
-from flaskext.csrf import csrf
+from flask.ext.seasurf import SeaSurf
 
 
 # Define the WSGI application object
@@ -16,7 +16,7 @@ app.config.from_object('config')
 app.config.from_pyfile(app.instance_path + "/" + "config.py")
 
 # Enable CSRF protection
-csrf(app)
+csrf = SeaSurf(app)
 
 # Walk all configs and if any of them are None, then it means the user didn't
 # Add a required custom config (eg. FB access key. Throw error and exit)
