@@ -2,7 +2,7 @@ Cheetah==2.4.4
 Flask==0.10.1
 Flask-HTTPAuth==3.2.2
 Flask-Login==0.4.0
-Jinja2==2.7.2
+Jinja2==2.11.3
 MarkupSafe==0.18
 PyYAML==3.10
 SQLAlchemy==0.8.4
